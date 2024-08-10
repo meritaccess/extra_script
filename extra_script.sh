@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "Extra script"
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Extra script" >> "/home/meritaccess/logs/update.log"
