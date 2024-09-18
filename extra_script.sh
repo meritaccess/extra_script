@@ -38,7 +38,12 @@ create_merit_access_web_conf() {
 
     ErrorLog \${APACHE_LOG_DIR}/merit_access_web_error.log
     CustomLog \${APACHE_LOG_DIR}/merit_access_web.log combined
-    Redirect 301 /phpmyadmin http://localhost:8081/phpmyadmin
+        RewriteEngine On
+
+    # Capture the server's current IP dynamically
+    RewriteCond %{HTTP_HOST} !^localhost [NC]
+    RewriteCond %{SERVER_ADDR} (.*)
+    RewriteRule ^/phpmyadmin$ http://%1:8081/phpmyadmin [R=301,L]
 </VirtualHost>
 EOL
     else
@@ -100,6 +105,8 @@ modify_apache_conf() {
 }
 
 enable_sites() {
+    sudo a2enmod rewrite
+    sudo systemctl restart apache2
     sudo a2ensite phpmyadmin.conf merit_access_web.conf
     sudo a2dissite 000-default.conf
     log_message "Reloading Apache..."
