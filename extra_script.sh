@@ -7,7 +7,7 @@ log_message "Extra script started."
 
 CONFIG_FILE="/etc/mysql/mariadb.cnf"
 
-# Check for [mysqld]
+# check for [mysqld]
 if ! grep -q "^\[mysqld\]" "$CONFIG_FILE"; then
     echo "[mysqld]" >> "$CONFIG_FILE"
 fi
@@ -29,3 +29,30 @@ if [ -z $uart_enabled ]; then
 else
     log_message "UART4 overlay is already enabled."
 fi
+
+# ensure correct hostname
+current_hostname=$(hostname)
+if [[ "$current_hostname" == *"cm4"* || "$current_hostname" == *"MDUD83ADD06DB00"* ]]; then
+    mac_address_eth=$(ip link show eth0 | grep ether | awk '{print $2}')
+    my_mdu=$(echo "$mac_address_eth" | tr -d ':')
+    mdu=$(echo "MDU${my_mdu}" | awk '{print toupper($0)}')
+
+    log_message "Current hostname: $current_hostname"
+    log_message "MAC address eth0: $mac_address_eth"
+    log_message "New hostname: $mdu"
+
+    # update /etc/hosts – only if has old hostname
+    sudo sed -i "s/127.0.1.1[[:space:]]\+$current_hostname/127.0.1.1       $mdu/" /etc/hosts
+
+    # set new hostname
+    sudo hostnamectl set-hostname "$mdu"
+    log_message "Hostname was changed to $mdu"
+else
+    log_message "Hostname is not 'cm4' nor 'MDUD83ADD06DB00', it will not be changed."
+fi
+
+
+# set systemd-timesyncd
+sudo systemctl unmask systemd-timesyncd
+sudo systemctl enable systemd-timesyncd
+sudo systemctl start systemd-timesyncd
